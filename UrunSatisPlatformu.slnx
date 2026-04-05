@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="UrunSatisPlatformu.API/UrunSatisPlatformu.API.csproj" />
+  <Project Path="UrunSatisPlatformu.Data/UrunSatisPlatformu.Data.csproj" />
+  <Project Path="UrunSatisPlatformu.Entity/UrunSatisPlatformu.Entity.csproj" />
+  <Project Path="UrunSatisPlatformu.MVC/UrunSatisPlatformu.MVC.csproj" />
+</Solution>
