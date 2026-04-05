@@ -1,0 +1,92 @@
+﻿@{
+    // Giriş sayfasında o sol taraftaki siyah menü görünmesin diye Layout'u iptal ediyoruz
+    Layout = null; 
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giriş Yap - Admin Paneli</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        body { background-color: #212529; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-card { width: 100%; max-width: 400px; border-radius: 15px; overflow: hidden; }
+        .login-header { background: #0d6efd; padding: 20px; text-align: center; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="card login-card shadow-lg border-0">
+        <div class="login-header">
+            <h3><i class="fa-solid fa-lock me-2"></i> Yönetici Girişi</h3>
+            <p class="mb-0 text-white-50">Lütfen bilgilerinizi giriniz</p>
+        </div>
+        <div class="card-body p-4">
+            
+            <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+                Kullanıcı adı veya şifre hatalı!
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Kullanıcı Adı</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                    <input type="text" id="txtUsername" class="form-control" placeholder="Admin" />
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label fw-bold">Şifre</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
+                    <input type="password" id="txtPassword" class="form-control" placeholder="******" />
+                </div>
+            </div>
+            
+            <button id="btnLogin" class="btn btn-primary w-100 py-2 fw-bold">
+                <i class="fa-solid fa-right-to-bracket me-2"></i> Giriş Yap
+            </button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#btnLogin").click(function () {
+                var user = {
+                    username: $("#txtUsername").val(),
+                    password: $("#txtPassword").val()
+                };
+
+                // Butonu yükleniyor durumuna al
+                var btn = $(this);
+                btn.html('<span class="spinner-border spinner-border-sm me-2"></span> Bekleniyor...');
+                btn.prop("disabled", true);
+
+                $.ajax({
+                    url: "https://localhost:7224/api/Auth/login", // PORTA DİKKAT ET
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(user),
+                    success: function (response) {
+                        // GİRİŞ BAŞARILI! Bize gelen VIP bileti (Token) tarayıcı hafızasına kaydediyoruz
+                        localStorage.setItem("token", response.token);
+                        
+                        // Tablomuzun olduğu Ana Sayfaya yönlendiriyoruz
+                        window.location.href = "/Home/Index"; 
+                    },
+                    error: function () {
+                        // GİRİŞ BAŞARISIZ
+                        $("#errorAlert").removeClass("d-none");
+                        btn.html('<i class="fa-solid fa-right-to-bracket me-2"></i> Giriş Yap');
+                        btn.prop("disabled", false);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

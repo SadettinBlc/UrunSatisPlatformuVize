@@ -1,0 +1,232 @@
+﻿@{
+    ViewData["Title"] = "Ürün Yönetimi";
+}
+
+<div class="card shadow border-0 mt-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fa-solid fa-box-open me-2"></i> Ürün Listesi</h5>
+        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">
+            <i class="fa-solid fa-plus me-1"></i> Yeni Ürün Ekle
+        </button>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover table-striped align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Ürün Adı</th>
+                    <th>Fiyat</th>
+                    <th>Stok</th>
+                    <th>Kategori</th>
+                    <th class="text-end">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody id="productTableBody">
+                <tr><td colspan="6" class="text-center">Ürünler Yükleniyor...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fa-solid fa-cart-plus me-2"></i>Yeni Ürün Ekle</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Ürün Adı</label>
+                    <input type="text" id="txtProductName" class="form-control" placeholder="Örn: Kurşun Kalem" />
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Fiyat (₺)</label>
+                        <input type="number" id="txtProductPrice" class="form-control" placeholder="0.00" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Stok Adedi</label>
+                        <input type="number" id="txtProductStock" class="form-control" placeholder="0" />
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Kategori</label>
+                    <select id="ddlCategory" class="form-select">
+                        <option value="">Kategori Seçiniz...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" id="btnSaveProduct" class="btn btn-success">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fa-solid fa-pen-to-square me-2"></i>Ürünü Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="txtEditProductId" />
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Ürün Adı</label>
+                    <input type="text" id="txtEditProductName" class="form-control" />
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Fiyat (₺)</label>
+                        <input type="number" id="txtEditProductPrice" class="form-control" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Stok Adedi</label>
+                        <input type="number" id="txtEditProductStock" class="form-control" />
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Kategori</label>
+                    <select id="ddlEditCategory" class="form-select">
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" id="btnUpdateProduct" class="btn btn-warning fw-bold">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // PORTLARDAN EMİNİZ, SIKINTI YOK
+            var productApiUrl = "https://localhost:7224/api/Products";
+            var categoryApiUrl = "https://localhost:7224/api/Categories";
+            var token = localStorage.getItem("token");
+
+            // 1. KATEGORİLERİ DOLDUR
+            $.ajax({
+                url: categoryApiUrl,
+                type: "GET",
+                headers: { "Authorization": "Bearer " + token },
+                success: function (data) {
+                    var options = "<option value=''>Kategori Seçiniz...</option>";
+                    $.each(data, function (index, item) {
+                        options += "<option value='" + item.id + "'>" + item.name + "</option>";
+                    });
+                    $("#ddlCategory").html(options);
+                    $("#ddlEditCategory").html(options);
+                }
+            });
+
+            // 2. ÜRÜNLERİ GETİR
+            $.ajax({
+                url: productApiUrl,
+                type: "GET",
+                headers: { "Authorization": "Bearer " + token },
+                success: function (data) {
+                    var rows = "";
+                    $.each(data, function (index, item) {
+                        rows += "<tr>";
+                        rows += "<td><span class='badge bg-secondary'>#" + item.id + "</span></td>";
+                        rows += "<td class='fw-bold text-primary'>" + item.name + "</td>";
+                        rows += "<td class='fw-bold text-success'>" + item.price + " ₺</td>";
+                        
+                        if(item.stock < 10) {
+                            rows += "<td><span class='badge bg-danger'>" + item.stock + " (Kritik)</span></td>";
+                        } else {
+                            rows += "<td><span class='badge bg-info text-dark'>" + item.stock + "</span></td>";
+                        }
+
+                        var categoryName = item.categoryName ? item.categoryName : "Kategori Seçilmemiş";
+                        rows += "<td><i class='fa-solid fa-tag me-1 text-muted'></i>" + categoryName + "</td>";
+                        
+                        rows += "<td class='text-end'>";
+                        rows += "<button class='btn btn-sm btn-warning btn-edit me-1' data-id='" + item.id + "' data-name='" + item.name + "' data-price='" + item.price + "' data-stock='" + item.stock + "' data-categoryid='" + item.categoryId + "'><i class='fa-solid fa-pen'></i></button>";
+                        rows += "<button class='btn btn-sm btn-danger btn-delete' data-id='" + item.id + "'><i class='fa-solid fa-trash'></i></button>";
+                        rows += "</td></tr>";
+                    });
+                    
+                    if(data.length === 0) rows = "<tr><td colspan='6' class='text-center fw-bold text-danger'>Dükkanda hiç ürün yok!</td></tr>";
+                    $("#productTableBody").html(rows);
+                },
+                error: function () {
+                    $("#productTableBody").html("<tr><td colspan='6' class='text-center fw-bold text-danger'>Hata oluştu! Tablo yüklenemedi.</td></tr>");
+                }
+            });
+
+            // 3. YENİ ÜRÜN EKLE
+            $("#btnSaveProduct").click(function () {
+                if (!token) { window.location.href = "/Home/Login"; return; }
+                var newProduct = {
+                    name: $("#txtProductName").val(),
+                    price: parseFloat($("#txtProductPrice").val()),
+                    stock: parseInt($("#txtProductStock").val()),
+                    categoryId: parseInt($("#ddlCategory").val())
+                };
+
+                $.ajax({
+                    url: productApiUrl,
+                    type: "POST",
+                    contentType: "application/json",
+                    headers: { "Authorization": "Bearer " + token },
+                    data: JSON.stringify(newProduct),
+                    success: function () { location.reload(); },
+                    error: function() { alert("Eksik bilgi girdiniz!"); }
+                });
+            });
+
+            // 4. ÜRÜN SİL
+            $(document).on("click", ".btn-delete", function () {
+                var id = $(this).data("id");
+                if (!token) { window.location.href = "/Home/Login"; return; }
+                if (confirm("Silmek istediğine emin misin babuş?")) {
+                    $.ajax({
+                        url: productApiUrl + "/" + id,
+                        type: "DELETE",
+                        headers: { "Authorization": "Bearer " + token },
+                        success: function () { location.reload(); }
+                    });
+                }
+            });
+
+            // 5. GÜNCELLE BUTONUNA BASILINCA
+            $(document).on("click", ".btn-edit", function () {
+                $("#txtEditProductId").val($(this).data("id"));
+                $("#txtEditProductName").val($(this).data("name"));
+                $("#txtEditProductPrice").val($(this).data("price"));
+                $("#txtEditProductStock").val($(this).data("stock"));
+                $("#ddlEditCategory").val($(this).data("categoryid"));
+                $("#editProductModal").modal("show");
+            });
+
+            // 6. GÜNCELLE KAYDET (PUT)
+            $("#btnUpdateProduct").click(function () {
+                if (!token) { window.location.href = "/Home/Login"; return; }
+                var updatedProduct = {
+                    id: $("#txtEditProductId").val(),
+                    name: $("#txtEditProductName").val(),
+                    price: parseFloat($("#txtEditProductPrice").val()),
+                    stock: parseInt($("#txtEditProductStock").val()),
+                    categoryId: parseInt($("#ddlEditCategory").val())
+                };
+
+                $.ajax({
+                    url: productApiUrl + "/" + updatedProduct.id,
+                    type: "PUT",
+                    contentType: "application/json",
+                    headers: { "Authorization": "Bearer " + token },
+                    data: JSON.stringify(updatedProduct),
+                    success: function () { location.reload(); },
+                    error: function () { alert("Güncellenirken hata!"); }
+                });
+            });
+        });
+    </script>
+}

@@ -1,53 +1,190 @@
 ﻿@{
-    ViewData["Title"] = "Ana Sayfa";
+    ViewData["Title"] = "Kategoriler";
 }
 
-<div class="text-center mt-5">
-    <h1 class="display-4">E-Ticaret Platformuna Hoş Geldiniz</h1>
-    <p>Aşağıdaki veriler arka planda AJAX ile API'den canlı olarak çekilmektedir:</p>
+<div class="card shadow border-0 mt-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fa-solid fa-list me-2"></i> Kategori Listesi</h5>
+        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+            <i class="fa-solid fa-plus me-1"></i> Yeni Ekle
+        </button>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover table-striped align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Kategori Adı</th>
+                    <th>Açıklama</th>
+                    <th>Durum</th>
+                    <th class="text-end">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody id="categoryTableBody">
+                <tr><td colspan="5" class="text-center">Yükleniyor...</td></tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
-<div class="container mt-4">
-    <table class="table table-bordered table-striped">
-        <thead class="table-dark">
-            <tr>
-                <th>Kategori ID</th>
-                <th>Kategori Adı</th>
-            </tr>
-        </thead>
-        <tbody id="kategoriListesi">
-        </tbody>
-    </table>
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fa-solid fa-folder-plus me-2"></i>Yeni Kategori Ekle</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Kategori Adı</label>
+                    <input type="text" id="txtCategoryName" class="form-control" placeholder="Örn: Kırtasiye" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Açıklama</label>
+                    <textarea id="txtCategoryDesc" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" id="btnSaveCategory" class="btn btn-primary">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fa-solid fa-pen-to-square me-2"></i>Kategoriyi Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="txtEditCategoryId" />
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Kategori Adı</label>
+                    <input type="text" id="txtEditCategoryName" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Açıklama</label>
+                    <textarea id="txtEditCategoryDesc" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" id="btnUpdateCategory" class="btn btn-warning fw-bold">Güncelle</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <script>
         $(document).ready(function () {
-            
-            // DİKKAT: Buradaki URL'yi kendi API'nin çalıştığı port numarasıyla değiştirmelisin!
             var apiUrl = "https://localhost:7224/api/Categories";
 
+            // 1. LİSTEYİ GETİR (SARI BUTON BURADA EKLENİYOR)
             $.ajax({
                 url: apiUrl,
                 type: "GET",
                 success: function (data) {
-                    // API'den veriler başarıyla gelirse burası çalışır
-                    var html = "";
+                    var rows = "";
                     $.each(data, function (index, item) {
-                        html += "<tr>";
-                        html += "<td>" + item.id + "</td>";
-                        html += "<td>" + item.name + "</td>";
-                        html += "</tr>";
+                        rows += "<tr>";
+                        rows += "<td>#" + item.id + "</td>";
+                        rows += "<td class='fw-bold'>" + item.name + "</td>";
+                        rows += "<td>" + item.description + "</td>";
+                        rows += "<td><span class='badge bg-success'>Aktif</span></td>";
+                        rows += "<td class='text-end'>";
+                        
+                        // İŞTE SARI DÜZENLE BUTONU
+                        rows += "<button class='btn btn-sm btn-warning btn-edit me-1' data-id='" + item.id + "' data-name='" + item.name + "' data-desc='" + item.description + "'><i class='fa-solid fa-pen'></i></button>";
+                        
+                        // KIRMIZI SİL BUTONU
+                        rows += "<button class='btn btn-sm btn-danger btn-delete' data-id='" + item.id + "'><i class='fa-solid fa-trash'></i></button>";
+                        
+                        rows += "</td></tr>";
                     });
-                    // Oluşturduğumuz HTML'i tabloya basıyoruz
-                    $("#kategoriListesi").html(html);
-                },
-                error: function (err) {
-                    console.log("Hata oluştu:", err);
-                    $("#kategoriListesi").html("<tr><td colspan='2' class='text-danger'>Veriler çekilirken bir hata oluştu. API ayakta mı?</td></tr>");
+                    $("#categoryTableBody").html(rows);
                 }
             });
 
+            // 2. YENİ EKLE
+            $("#btnSaveCategory").click(function () {
+                var token = localStorage.getItem("token");
+                if (!token) { alert("Giriş yapmalısın!"); window.location.href = "/Home/Login"; return; }
+
+                var newCategory = {
+                    name: $("#txtCategoryName").val(),
+                    description: $("#txtCategoryDesc").val()
+                };
+
+                $.ajax({
+                    url: apiUrl,
+                    type: "POST",
+                    contentType: "application/json",
+                    headers: { "Authorization": "Bearer " + token },
+                    data: JSON.stringify(newCategory),
+                    success: function () { location.reload(); }
+                });
+            });
+
+            // 3. SİL
+            $(document).on("click", ".btn-delete", function () {
+                var id = $(this).data("id");
+                var token = localStorage.getItem("token");
+                if (!token) { window.location.href = "/Home/Login"; return; }
+
+                if (confirm("Silmek istediğine emin misin?")) {
+                    $.ajax({
+                        url: apiUrl + "/" + id,
+                        type: "DELETE",
+                        headers: { "Authorization": "Bearer " + token },
+                        success: function () { location.reload(); }
+                    });
+                }
+            });
+
+            // 4. SARI BUTONA BASILINCA (Modalı doldur ve aç)
+            $(document).on("click", ".btn-edit", function () {
+                var id = $(this).data("id");
+                var name = $(this).data("name");
+                var desc = $(this).data("desc");
+
+                $("#txtEditCategoryId").val(id);
+                $("#txtEditCategoryName").val(name);
+                $("#txtEditCategoryDesc").val(desc);
+
+                $("#editCategoryModal").modal("show");
+            });
+
+            // 5. GÜNCELLE BUTONUNA BASILINCA (API'ye PUT isteği at)
+            $("#btnUpdateCategory").click(function () {
+                var token = localStorage.getItem("token");
+                if (!token) { window.location.href = "/Home/Login"; return; }
+
+                var updatedCategory = {
+                    id: $("#txtEditCategoryId").val(),
+                    name: $("#txtEditCategoryName").val(),
+                    description: $("#txtEditCategoryDesc").val()
+                };
+
+                $.ajax({
+                    url: apiUrl + "/" + updatedCategory.id,
+                    type: "PUT",
+                    contentType: "application/json",
+                    headers: { "Authorization": "Bearer " + token },
+                    data: JSON.stringify(updatedCategory),
+                    success: function () {
+                        $("#editCategoryModal").modal("hide");
+                        location.reload();
+                    },
+                    error: function (xhr) {
+                        alert("Güncellenirken hata oluştu!");
+                    }
+                });
+            });
         });
     </script>
 }
