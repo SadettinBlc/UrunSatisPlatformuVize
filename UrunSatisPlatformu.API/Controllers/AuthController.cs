@@ -13,16 +13,16 @@ namespace UrunSatisPlatformu.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
 
-        // Identity kütüphanesinin hazır kullanıcı yöneticisini çağırıyoruz
-        public AuthController(UserManager<IdentityUser> userManager, IConfiguration configuration)
+        public AuthController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
         {
             _userManager = userManager;
+            _roleManager = roleManager;
             _configuration = configuration;
         }
 
-        // 1. KAYIT OLMA METODU
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] UserRegisterDto dto)
         {
@@ -32,38 +32,39 @@ namespace UrunSatisPlatformu.API.Controllers
             if (result.Succeeded)
                 return Ok(new { message = "Kullanıcı başarıyla oluşturuldu." });
 
-            return BadRequest(result.Errors); // Şifre çok kısaysa vs. hata döner
+            return BadRequest(result.Errors);
         }
 
-        // 2. GİRİŞ YAPMA VE TOKEN ÜRETME METODU
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginDto dto)
         {
             var user = await _userManager.FindByNameAsync(dto.Username);
 
-            // Kullanıcı var mı ve şifresi doğru mu kontrolü
             if (user != null && await _userManager.CheckPasswordAsync(user, dto.Password))
             {
-                // Şifre doğruysa kullanıcının kimliğini oluşturuyoruz
+                var userRoles = await _userManager.GetRolesAsync(user);
+
                 var authClaims = new List<Claim>
                 {
-                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(ClaimTypes.Name, user.UserName!),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 };
 
-                // appsettings.json'daki gizli şifremizi alıyoruz
+                foreach (var userRole in userRoles)
+                {
+                    authClaims.Add(new Claim(ClaimTypes.Role, userRole));
+                }
+
                 var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
 
-                // Bilekliği (Token) hazırlıyoruz
                 var token = new JwtSecurityToken(
                     issuer: _configuration["Jwt:Issuer"],
                     audience: _configuration["Jwt:Audience"],
-                    expires: DateTime.Now.AddHours(3), // Token 3 saat geçerli olsun
+                    expires: DateTime.Now.AddHours(3),
                     claims: authClaims,
                     signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
                 );
 
-                // Token'ı kullanıcıya yolluyoruz
                 return Ok(new
                 {
                     token = new JwtSecurityTokenHandler().WriteToken(token),
@@ -72,6 +73,29 @@ namespace UrunSatisPlatformu.API.Controllers
             }
 
             return Unauthorized(new { message = "Kullanıcı adı veya şifre hatalı!" });
+        }
+
+        [HttpPost("create-role")]
+        public async Task<IActionResult> CreateRole([FromBody] string roleName)
+        {
+            if (!await _roleManager.RoleExistsAsync(roleName))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(roleName));
+                return Ok(new { message = "Rol başarıyla oluşturuldu." });
+            }
+            return BadRequest("Bu rol zaten mevcut.");
+        }
+
+        [HttpPost("assign-role")]
+        public async Task<IActionResult> AssignRole(string username, string roleName)
+        {
+            var user = await _userManager.FindByNameAsync(username);
+            if (user != null && await _roleManager.RoleExistsAsync(roleName))
+            {
+                await _userManager.AddToRoleAsync(user, roleName);
+                return Ok(new { message = "Rol başarıyla atandı." });
+            }
+            return BadRequest("Kullanıcı veya rol bulunamadı.");
         }
     }
 }

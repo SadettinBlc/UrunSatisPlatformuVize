@@ -11,5 +11,7 @@ namespace UrunSatisPlatformu.Data.Abstract
         Task AddAsync(T entity);
         void Update(T entity);
         void Delete(T entity);
+        // Bu metod, "Kategoriyi getirirken Ürünleri de getir" dememize yarayacak
+        Task<IEnumerable<T>> GetAllWithIncludesAsync(params Expression<Func<T, object>>[] includes);
     }
 }

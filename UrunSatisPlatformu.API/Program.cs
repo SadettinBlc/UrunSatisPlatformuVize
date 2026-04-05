@@ -50,7 +50,20 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Birbirini çağıran yapıları (Kategori-Ürün) döngüye girmeden düzgünce paketle
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
+// API'ye dışarıdan (AJAX ile) gelecek isteklere kapıyı açıyoruz (CORS Ayarı)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader());
+});
 
 // === YENİ EKLENEN: SWAGGER KİLİT EKRANI ===
 builder.Services.AddEndpointsApiExplorer();
@@ -95,6 +108,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll"); // Kimlik kontrolünden (Authentication) ÖNCE olmalı!
 
 // === YETKİLENDİRME (Sırası çok önemli: Önce Authentication, sonra Authorization) ===
 app.UseAuthentication();

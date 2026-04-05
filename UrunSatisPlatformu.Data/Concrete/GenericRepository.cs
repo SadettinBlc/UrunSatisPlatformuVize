@@ -22,7 +22,7 @@ namespace UrunSatisPlatformu.Data.Concrete
 
         public async Task<T> GetByIdAsync(int id)
         {
-            return await _dbSet.FindAsync(id);
+            return (await _dbSet.FindAsync(id))!;
         }
 
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
@@ -46,6 +46,21 @@ namespace UrunSatisPlatformu.Data.Concrete
         {
             _dbSet.Remove(entity);
             _context.SaveChanges();
+        }
+        public async Task<IEnumerable<T>> GetAllWithIncludesAsync(params System.Linq.Expressions.Expression<Func<T, object>>[] includes)
+        {
+            // _context sendeki DbContext'in adı neyse o olmalı (ApplicationDbContext gibi)
+            IQueryable<T> query = _context.Set<T>();
+
+            if (includes != null)
+            {
+                foreach (var include in includes)
+                {
+                    query = query.Include(include); // Ürünleri listeye dahil et (Paket servis)
+                }
+            }
+
+            return await query.ToListAsync();
         }
     }
 }

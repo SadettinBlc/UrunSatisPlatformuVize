@@ -2,16 +2,15 @@
 using Microsoft.AspNetCore.Mvc;
 using UrunSatisPlatformu.Data.Abstract;
 using UrunSatisPlatformu.Entity;
-using UrunSatisPlatformu.Entity.DTOs;
+using UrunSatisPlatformu.Entity.DTOs; // Entity klasörünün adını kontrol et
 
 namespace UrunSatisPlatformu.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // --> İşte yeni asma kilidimiz bu!
+    [Authorize] // Bu sınıfa girmek için en azından giriş (Login) yapmış olmak şart
     public class CategoriesController : ControllerBase
     {
-        // Yazdığımız Repository'yi buraya çağırıyoruz (Dependency Injection)
         private readonly IGenericRepository<Category> _repository;
 
         public CategoriesController(IGenericRepository<Category> repository)
@@ -19,64 +18,63 @@ namespace UrunSatisPlatformu.API.Controllers
             _repository = repository;
         }
 
-        // 1. KATEGORİLERİ LİSTELEME METODU (GET İSTEĞİ)
+        // GET: Herkes (Giriş yapan) listeyi görebilir
+        // GET: Herkes (Giriş yapan VEYA yapmayan) listeyi görebilir
+        // CategoriesController.cs içinde GetAll metodunu güncelle
+        [AllowAnonymous]
         [HttpGet]
-        public async Task<IActionResult> GetCategories()
+        public async Task<IActionResult> GetAll()
         {
-            // Veritabanından tüm kategorileri çekiyoruz
-            var categories = await _repository.GetAllAsync();
-
-            // Güvenlik ve temizlik için Entity nesnelerimizi DTO'ya dönüştürüyoruz
-            var categoryDtos = categories.Select(c => new CategoryDto
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Description = c.Description
-            }).ToList();
-
-            return Ok(categoryDtos); // 200 Başarılı koduyla veriyi dışarı yolluyoruz
+            // "Kategorileri getirirken yanına Products (Ürünler) listesini de koy" diyoruz
+            var values = await _repository.GetAllWithIncludesAsync(x => x.Products);
+            return Ok(values);
         }
 
-        // 2. YENİ KATEGORİ EKLEME METODU (POST İSTEĞİ)
-        [HttpPost]
-        public async Task<IActionResult> AddCategory([FromBody] CategoryDto categoryDto)
+        // GET BY ID: Herkes (Giriş yapan) tek bir kategoriyi görebilir
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
         {
-            // Dışarıdan gelen DTO'yu, veritabanına eklenecek Entity'ye çeviriyoruz
+            var value = await _repository.GetByIdAsync(id); // Sizin komuta göre güncellendi
+            if (value == null) return NotFound("Kategori bulunamadı.");
+            return Ok(value);
+        }
+
+        // POST: SADECE ADMİN YENİ KATEGORİ EKLEYEBİLİR
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<IActionResult> AddCategory(CategoryCreateDto dto) // Buraya artık yeni DTO'yu yazdık
+        {
+            // DTO'dan gelen temiz verileri asıl Category sınıfına aktarıyoruz
             var category = new Category
             {
-                Name = categoryDto.Name,
-                Description = categoryDto.Description,
+                Name = dto.Name,
+                Description = dto.Description,
                 IsActive = true
             };
 
             await _repository.AddAsync(category);
-            return Ok(new { message = "Kategori başarıyla eklendi." });
+            return Ok("Kategori başarıyla eklendi.");
         }
-        // 3. KATEGORİ GÜNCELLEME (PUT İSTEĞİ)
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryDto categoryDto)
+
+        // PUT: SADECE ADMİN GÜNCELLEYEBİLİR
+        [Authorize(Roles = "Admin")]
+        [HttpPut]
+        public IActionResult UpdateCategory(Category category)
         {
-            var category = await _repository.GetByIdAsync(id);
-            if (category == null)
-                return NotFound(new { message = "Güncellenecek kategori bulunamadı." });
-
-            category.Name = categoryDto.Name;
-            category.Description = categoryDto.Description;
-
-            _repository.Update(category);
-            return Ok(new { message = "Kategori başarıyla güncellendi." });
+            _repository.Update(category); // Update metodu senkron yazılmış, aynen kullandık
+            return Ok("Kategori başarıyla güncellendi.");
         }
 
-        // 4. KATEGORİ SİLME (DELETE İSTEĞİ)
+        // DELETE: SADECE ADMİN SİLEBİLİR
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
-            var category = await _repository.GetByIdAsync(id);
-            if (category == null)
-                return NotFound(new { message = "Silinecek kategori bulunamadı." });
+            var value = await _repository.GetByIdAsync(id); // Önce sileceğimiz veriyi buluyoruz
+            if (value == null) return NotFound("Silinecek kategori bulunamadı.");
 
-            _repository.Delete(category);
-            return Ok(new { message = "Kategori başarıyla silindi." });
+            _repository.Delete(value); // Delete metodu senkron yazılmış, aynen kullandık
+            return Ok("Kategori başarıyla silindi.");
         }
     }
 }

@@ -1,8 +1,53 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Ana Sayfa";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="text-center mt-5">
+    <h1 class="display-4">E-Ticaret Platformuna Hoş Geldiniz</h1>
+    <p>Aşağıdaki veriler arka planda AJAX ile API'den canlı olarak çekilmektedir:</p>
 </div>
+
+<div class="container mt-4">
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Kategori ID</th>
+                <th>Kategori Adı</th>
+            </tr>
+        </thead>
+        <tbody id="kategoriListesi">
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            
+            // DİKKAT: Buradaki URL'yi kendi API'nin çalıştığı port numarasıyla değiştirmelisin!
+            var apiUrl = "https://localhost:7224/api/Categories";
+
+            $.ajax({
+                url: apiUrl,
+                type: "GET",
+                success: function (data) {
+                    // API'den veriler başarıyla gelirse burası çalışır
+                    var html = "";
+                    $.each(data, function (index, item) {
+                        html += "<tr>";
+                        html += "<td>" + item.id + "</td>";
+                        html += "<td>" + item.name + "</td>";
+                        html += "</tr>";
+                    });
+                    // Oluşturduğumuz HTML'i tabloya basıyoruz
+                    $("#kategoriListesi").html(html);
+                },
+                error: function (err) {
+                    console.log("Hata oluştu:", err);
+                    $("#kategoriListesi").html("<tr><td colspan='2' class='text-danger'>Veriler çekilirken bir hata oluştu. API ayakta mı?</td></tr>");
+                }
+            });
+
+        });
+    </script>
+}

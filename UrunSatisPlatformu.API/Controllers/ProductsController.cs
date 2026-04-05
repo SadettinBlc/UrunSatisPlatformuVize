@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using UrunSatisPlatformu.Data.Abstract;
 using UrunSatisPlatformu.Entity;
 using UrunSatisPlatformu.Entity.DTOs;
@@ -41,9 +42,20 @@ namespace UrunSatisPlatformu.API.Controllers
         }
 
         // 2. YENİ ÜRÜN EKLEME
+        [Authorize(Roles = "Admin")]
         [HttpPost]
-        public async Task<IActionResult> AddProduct([FromBody] ProductCreateDto dto)
+        public async Task<IActionResult> AddProduct(ProductCreateDto dto)
         {
+            // 1. KONTROL: Böyle bir kategori gerçekten var mı?
+            var category = await _categoryRepository.GetByIdAsync(dto.CategoryId);
+
+            if (category == null)
+            {
+                // İşte senin istediğin o kibar uyarı mesajı! Uygulama çökmez, bu mesajı döner.
+                return BadRequest("Hata: Girdiğiniz Kategori ID'sine ait bir kategori bulunamadı!");
+            }
+
+            // 2. Kategori varsa ekleme işlemine normal devam et...
             var product = new Product
             {
                 Name = dto.Name,
@@ -59,6 +71,7 @@ namespace UrunSatisPlatformu.API.Controllers
             return Ok(new { message = "Ürün başarıyla eklendi." });
         }
         // 3. ÜRÜN GÜNCELLEME (PUT İSTEĞİ)
+        [Authorize(Roles = "Admin")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductCreateDto dto)
         {
@@ -78,6 +91,7 @@ namespace UrunSatisPlatformu.API.Controllers
         }
 
         // 4. ÜRÜN SİLME (DELETE İSTEĞİ)
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
