@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using UrunSatisPlatformu.Data.Abstract;
 using UrunSatisPlatformu.Entity;
 using UrunSatisPlatformu.Entity.DTOs;
@@ -7,6 +8,7 @@ namespace UrunSatisPlatformu.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize] // --> İşte yeni asma kilidimiz bu!
     public class CategoriesController : ControllerBase
     {
         // Yazdığımız Repository'yi buraya çağırıyoruz (Dependency Injection)
